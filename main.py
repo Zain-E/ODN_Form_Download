@@ -3,7 +3,7 @@ import dash_bootstrap_components as dbc
 import dash_html_components as html
 import dash
 import pandas as pd #For some reason version 1.1.5 worked.  If you cannot deploy ensure that you copy and paste the requirements.txt file from this app!  As it seems to work.
-from dash.dependencies import Input, Output, State
+from dash.dependencies import Input, Output
 from dash_extensions import Download
 from dash_extensions.snippets import send_data_frame
 import psycopg2
