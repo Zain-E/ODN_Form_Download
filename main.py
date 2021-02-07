@@ -1,9 +1,9 @@
-
+import dash_core_components as dcc
 import dash_bootstrap_components as dbc
 import dash_html_components as html
 import dash
 import pandas as pd #For some reason version 1.1.5 worked.  If you cannot deploy ensure that you copy and paste the requirements.txt file from this app!  As it seems to work.
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 from dash_extensions import Download
 from dash_extensions.snippets import send_data_frame
 import psycopg2
@@ -36,6 +36,14 @@ VALID_USERNAME_PASSWORD_PAIRS = {
      'BenParker': 'ODNform444'
 }
 
+#Drop-down List
+
+list = [{'label':'LAST WEEKS DATA', 'value':'WEEK'},
+        {'label':'A FORTNIGHTS DATA', 'value':'FORTNIGHT'},
+        {'label':'MONTHS DATA', 'value':'MONTH'},
+        {'label':'ALL', 'value':'ALL'}
+        ]
+
 #=========================================== LAYOUT ====================================================================
 
 app = dash.Dash(__name__, external_stylesheets=['https://stackpath.bootstrapcdn.com/bootswatch/4.5.2/lux/bootstrap.min.css'],prevent_initial_callbacks=True)
@@ -55,7 +63,21 @@ app.layout = html.Div([
 
                         html.Br(),
 
-                        dbc.Row(dbc.Col(html.H4('Each Button will allow you to save the full dataset '),style={'text-align': 'center','vertical-align':'middle'}, width =12)),
+                        dbc.Row(dbc.Col(html.H4('Select how far back you wish to download the data with the dropdown and click download '),style={'text-align': 'center','vertical-align':'middle'}, width =12)),
+
+                        html.Hr(),
+
+                        html.Br(),
+
+                        dbc.Row([dbc.Col(width=4),
+                                 dbc.Col(dcc.Dropdown(id='Dropdown',
+                                                             options=list,
+                                                             multi=False,
+                                                             style={'text-align': 'center'},
+                                                             clearable=True,
+                                                             placeholder='Please select period of data needed'
+                                                ),width=4),
+                                 dbc.Col(width=4)]),
 
                         html.Hr(),
 
@@ -79,19 +101,19 @@ app.layout = html.Div([
 #Callback for the download button
 @app.callback(
     Output("download_paed", "data"),
-    [Input("Download Paeds Data", "n_clicks")],
+    [Input("Download Paeds Data", "n_clicks"),
+     State('Dropdown','value')]
 )
 
-def generate_csv(n):
+def generate_csv(n,Dropdown):
 
-    if n > 0:
         # Open a cursor to perform actions on the DB - remember, must close at the end of the query if it makes any changes!
         cur = conn.cursor()
         # conn.commit()
 
         # Execute a Query
 
-        cur.execute('SELECT * FROM public."Paediatric_Surgery";')
+        cur.execute('SELECT * FROM public."paeds_surg_view"')
         SQL_Query = cur.fetchall()
         #print(SQL_Query)
 
@@ -103,24 +125,36 @@ def generate_csv(n):
         # Create the dataframe, passing in the list of col_names extracted from the description
         df_RDS = pd.DataFrame(SQL_Query, columns=col_names)
 
-    return send_data_frame(df_RDS.to_csv, filename="PAEDS_Data.csv", index=False)
+        if n > 0 and Dropdown == 'WEEK':
+            df_RDS_v2 = df_RDS[df_RDS['Download_Filter']=='WEEK']
+            return send_data_frame(df_RDS_v2.to_csv, filename="PAEDS_Data.csv", index=False)
+        if n > 0 and Dropdown == 'FORTNIGHT':
+            df_RDS_v2 = df_RDS[df_RDS['Download_Filter'].isin(['WEEK','FORTNIGHT'])]
+            return send_data_frame(df_RDS_v2.to_csv, filename="PAEDS_Data.csv", index=False)
+        if n > 0 and Dropdown == 'MONTH':
+            df_RDS_v2 = df_RDS[df_RDS['Download_Filter'].isin(['WEEK','FORTNIGHT','MONTH'])]
+            return send_data_frame(df_RDS_v2.to_csv, filename="PAEDS_Data.csv", index=False)
+        if n > 0 and Dropdown == 'ALL':
+            df_RDS_v2 = df_RDS[df_RDS['Download_Filter'].isin(['WEEK', 'FORTNIGHT', 'MONTH', 'ALL'])]
+            return send_data_frame(df_RDS_v2.to_csv, filename="PAEDS_Data.csv", index=False)
 
 #=========================================== CALL BACK DOWNLOAD - CARD =================================================
 
 # Callback for the download button
 @app.callback(
     Output("download_card", "data"),
-    [Input("Download Cardiac Data", "n_clicks")],
+    [Input("Download Cardiac Data", "n_clicks"),
+     State('Dropdown','value')],
 )
-def generate_csv(n):
-    if n > 0:
+def generate_csv(n,Dropdown):
+
         # Open a cursor to perform actions on the DB - remember, must close at the end of the query if it makes any changes!
         cur = conn.cursor()
         # conn.commit()
 
         # Execute a Query
 
-        cur.execute('SELECT * FROM public."Cardiology";')
+        cur.execute('SELECT * FROM public."cardio_view";')
         SQL_Query = cur.fetchall()
         # print(SQL_Query)
 
@@ -130,9 +164,20 @@ def generate_csv(n):
             col_names.append(elt[0])
 
         # Create the dataframe, passing in the list of col_names extracted from the description
-        df_RDS_c = pd.DataFrame(SQL_Query, columns=col_names)
+        df_RDS = pd.DataFrame(SQL_Query, columns=col_names)
 
-    return send_data_frame(df_RDS_c.to_csv, filename="CARDIO_Data.csv", index=False)
+        if n > 0 and Dropdown == 'WEEK':
+            df_RDS_v2 = df_RDS[df_RDS['Download_Filter'] == 'WEEK']
+            return send_data_frame(df_RDS_v2.to_csv, filename="CARD_Data.csv", index=False)
+        if n > 0 and Dropdown == 'FORTNIGHT':
+            df_RDS_v2 = df_RDS[df_RDS['Download_Filter'].isin(['WEEK', 'FORTNIGHT'])]
+            return send_data_frame(df_RDS_v2.to_csv, filename="CARD_Data.csv", index=False)
+        if n > 0 and Dropdown == 'MONTH':
+            df_RDS_v2 = df_RDS[df_RDS['Download_Filter'].isin(['WEEK', 'FORTNIGHT', 'MONTH'])]
+            return send_data_frame(df_RDS_v2.to_csv, filename="CARD_Data.csv", index=False)
+        if n > 0 and Dropdown == 'ALL':
+            df_RDS_v2 = df_RDS[df_RDS['Download_Filter'].isin(['WEEK', 'FORTNIGHT', 'MONTH', 'ALL'])]
+            return send_data_frame(df_RDS_v2.to_csv, filename="CARD_Data.csv", index=False)
 
 #============================================== RUN ====================================================================
 if __name__ == "__main__":
