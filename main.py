@@ -14,7 +14,7 @@ import dash_auth
 
 #Amazon RDS database connection details
 username = 'zaineisa'
-password = 'Mastersword4!'
+password = '#########'
 port = '5432'
 host = 'postgres-aws-database.cldk6shvy1yf.eu-west-2.rds.amazonaws.com'
 database = 'postgres'
